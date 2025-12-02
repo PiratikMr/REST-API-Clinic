@@ -2,7 +2,6 @@ package com.example.clinic.service.api.services;
 
 import com.example.clinic.service.api.dto.request.CreateDictionaryRequest;
 import com.example.clinic.service.api.dto.request.Patch.PatchDictionaryRequest;
-import com.example.clinic.service.api.dto.response.PagedResponse;
 import com.example.clinic.service.api.dto.response.objects.DictionaryResponse;
 import com.example.clinic.service.api.services.enums.DictionaryType;
 import com.example.clinic.service.core.repositories.MedicationRepository;
@@ -11,14 +10,9 @@ import com.example.clinic.service.core.repositories.SpecialtyRepository;
 import com.example.clinic.service.core.repositories.TestRepository;
 import com.example.clinic.service.entities.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-
-import static com.example.clinic.service.api.services.ServiceConfig.PAGE_SIZE;
 
 @Service
 @RequiredArgsConstructor

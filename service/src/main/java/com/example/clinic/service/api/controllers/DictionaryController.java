@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,16 +29,19 @@ public class DictionaryController {
     }
 
     @PostMapping(SPECIALTIES)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> createSpecialty(@Valid @RequestBody CreateDictionaryRequest request) {
         return processCreate(DictionaryType.SPECIALTY, request);
     }
 
     @PatchMapping(SPECIALTIES)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> updateSpecialty(@Valid @RequestBody PatchDictionaryRequest request) {
         return processUpdate(DictionaryType.SPECIALTY, request);
     }
 
     @DeleteMapping(SPECIALTIES + "/{specialtyId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteSpecialty(@PathVariable Long specialtyId) {
         return processDelete(DictionaryType.SPECIALTY, specialtyId);
     }
@@ -49,16 +53,19 @@ public class DictionaryController {
     }
 
     @PostMapping(MEDICATIONS)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> createMedication(@Valid @RequestBody CreateDictionaryRequest request) {
         return processCreate(DictionaryType.MEDICATION, request);
     }
 
     @PatchMapping(MEDICATIONS)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> updateMedication(@Valid @RequestBody PatchDictionaryRequest request) {
         return processUpdate(DictionaryType.MEDICATION, request);
     }
 
     @DeleteMapping(MEDICATIONS + "/{medicationId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteMedication(@PathVariable Long medicationId) {
         return processDelete(DictionaryType.MEDICATION, medicationId);
     }
@@ -70,16 +77,19 @@ public class DictionaryController {
     }
 
     @PostMapping(PROCEDURES)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> createProcedure(@Valid @RequestBody CreateDictionaryRequest request) {
         return processCreate(DictionaryType.PROCEDURE, request);
     }
 
     @PatchMapping(PROCEDURES)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> updateProcedure(@Valid @RequestBody PatchDictionaryRequest request) {
         return processUpdate(DictionaryType.PROCEDURE, request);
     }
 
     @DeleteMapping(PROCEDURES + "/{procedureId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteProcedure(@PathVariable Long procedureId) {
         return processDelete(DictionaryType.PROCEDURE, procedureId);
     }
@@ -91,16 +101,19 @@ public class DictionaryController {
     }
 
     @PostMapping(TESTS)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> createTest(@Valid @RequestBody CreateDictionaryRequest request) {
         return processCreate(DictionaryType.TEST, request);
     }
 
     @PatchMapping(TESTS)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> updateTest(@Valid @RequestBody PatchDictionaryRequest request) {
         return processUpdate(DictionaryType.TEST, request);
     }
 
     @DeleteMapping(TESTS + "/{testId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteTest(@PathVariable Long testId) {
         return processDelete(DictionaryType.TEST, testId);
     }

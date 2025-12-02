@@ -1,4 +1,23 @@
 services:
+  app:
+    image: bellsoft/liberica-openjdk-alpine:21
+    container_name: clinic_app
+    env_file:
+      - .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${PG_DATABASE}
+      SPRING_DATASOURCE_USERNAME: ${PG_USER}
+      SPRING_DATASOURCE_PASSWORD: ${PG_PASSWORD}
+    ports:
+      - "${SERVICE_PORT}:8080"
+    depends_on:
+      - postgres
+      - flyway
+    volumes:
+      - ./service/build/libs:/app/jar
+    working_dir: /app
+    command: sh -c "java -jar /app/jar/service-0.0.1-SNAPSHOT.jar"
+
   postgres:
     image: postgres:15-alpine
     container_name: clinic_db

@@ -5,6 +5,7 @@ import com.example.clinic.service.api.dto.response.PatientResponse;
 import com.example.clinic.service.api.services.PatientService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import static com.example.clinic.service.api.ApiPaths.PATIENTS;
@@ -28,6 +29,7 @@ public class PatientController {
     }
 
     @PatchMapping("/{patientId}")
+    @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<PatientResponse> updatePatient(
             @PathVariable Long patientId,
             @RequestBody PatchPatientRequest request
