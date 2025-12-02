@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PersistenceUnitSettings">
+    <persistence-units>
+      <persistence-unit moduleName="DB-clinic-system.service.main" name="DB-clinic-system.service.main" framework="JPA" ormUnit="DB-clinic-system.service.main:DB-clinic-system.service.main" defaultDataSourceId="32bb55f7-677a-4633-938c-bf37dfd0bea8" />
+    </persistence-units>
+  </component>
+</project>

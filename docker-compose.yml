@@ -1,0 +1,30 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: clinic_db
+    environment:
+      POSTGRES_DB: ${PG_DATABASE}
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+    ports:
+      - "${PG_PORT}:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  flyway:
+    image: flyway/flyway
+    container_name: clinic-flyway
+    command:
+      - migrate
+    environment:
+      FLYWAY_URL: jdbc:postgresql://postgres:5432/${PG_DATABASE}
+      FLYWAY_USER: ${PG_USER}
+      FLYWAY_PASSWORD: ${PG_PASSWORD}
+      FLYWAY_CONNECT_RETRIES: 5
+    volumes:
+      - ./database/migrations:/flyway/sql
+    depends_on:
+      - postgres
+
+volumes:
+  db_data:
