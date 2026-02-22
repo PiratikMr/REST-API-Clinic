@@ -14,7 +14,7 @@ services:
       - postgres
       - flyway
     volumes:
-      - .:/app
+      - ./backend:/app
       - gradle_cache:/root/.gradle
     working_dir: /app
     command: >
@@ -45,9 +45,20 @@ services:
       FLYWAY_PASSWORD: ${PG_PASSWORD}
       FLYWAY_CONNECT_RETRIES: 5
     volumes:
-      - ./database/migrations:/flyway/sql
+      - ./backend/database/migrations:/flyway/sql
     depends_on:
       - postgres
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        REACT_APP_API_URL: http://localhost:${SERVICE_PORT}
+    container_name: clinic_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - app
 
 volumes:
   db_data:
