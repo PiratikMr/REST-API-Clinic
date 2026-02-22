@@ -34,75 +34,83 @@ import static com.example.clinic.service.api.ApiPaths.*;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthenticationManager authenticationManager;
-    private final UserRepository userRepository;
-    private final PatientRepository patientRepository;
-    private final PasswordEncoder encoder;
-    private final JwtUtils jwtUtils;
-    private final DoctorRepository doctorRepository;
+        private final AuthenticationManager authenticationManager;
+        private final UserRepository userRepository;
+        private final PatientRepository patientRepository;
+        private final PasswordEncoder encoder;
+        private final JwtUtils jwtUtils;
+        private final DoctorRepository doctorRepository;
 
-    @PostMapping(LOGIN)
-    public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+        @PostMapping(LOGIN)
+        public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
 
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getLogin(), loginRequest.getPassword()));
+                Authentication authentication = authenticationManager.authenticate(
+                                new UsernamePasswordAuthenticationToken(loginRequest.getLogin(),
+                                                loginRequest.getPassword()));
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        String jwt = jwtUtils.generateJwtToken(authentication);
+                String jwt = jwtUtils.generateJwtToken(authentication);
 
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        String role = userDetails.getAuthorities().stream()
-                .findFirst()
-                .map(GrantedAuthority::getAuthority)
-                .orElse(null);
+                UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+                String role = userDetails.getAuthorities().stream()
+                                .findFirst()
+                                .map(GrantedAuthority::getAuthority)
+                                .orElse(null);
 
-        Long entityId = -1L;
-        if (role != null) {
+                Long entityId = -1L;
+                if (role != null) {
 
-            String roleString = role.split("_")[1].toLowerCase().trim();
+                        String roleString = role.split("_")[1].toLowerCase().trim();
 
-            entityId = switch (roleString) {
-                case "admin" -> userDetails.getId();
-                case "patient" -> patientRepository.findByUserUserId(userDetails.getId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Пациент не найден с ID: " + userDetails.getId())).getPatientId();
-                case "doctor" -> doctorRepository.findByUserUserId(userDetails.getId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Доктор не найден с ID: " + userDetails.getId())).getDoctorId();
-                default -> entityId;
-            };
+                        entityId = switch (roleString) {
+                                case "admin" -> userDetails.getId();
+                                case "patient" -> patientRepository.findByUserUserId(userDetails.getId())
+                                                .orElseThrow(
+                                                                () -> new ResourceNotFoundException(
+                                                                                "Пациент не найден с ID: "
+                                                                                                + userDetails.getId()))
+                                                .getPatientId();
+                                case "doctor" -> doctorRepository.findByUserUserId(userDetails.getId())
+                                                .orElseThrow(
+                                                                () -> new ResourceNotFoundException(
+                                                                                "Доктор не найден с ID: "
+                                                                                                + userDetails.getId()))
+                                                .getDoctorId();
+                                default -> entityId;
+                        };
+                }
+
+                return ResponseEntity.ok(new JwtResponse(jwt,
+                                entityId,
+                                userDetails.getUsername(),
+                                role));
         }
 
-        return ResponseEntity.ok(new JwtResponse(jwt,
-                entityId,
-                userDetails.getUsername(),
-                role));
-    }
+        @PostMapping(REGISTER)
+        public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
+                if (userRepository.existsByUsername(signUpRequest.getLogin())) {
+                        return ResponseEntity
+                                        .badRequest()
+                                        .body(new MessageResponse("Имя пользователя уже занято"));
+                }
 
-    @PostMapping(REGISTER)
-    public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
-        if (userRepository.existsByUsername(signUpRequest.getLogin())) {
-            return ResponseEntity
-                    .badRequest()
-                    .body(new MessageResponse("Имя пользователя уже занято"));
+                User user = new User();
+                user.setUsername(signUpRequest.getLogin());
+                user.setPassword(encoder.encode(signUpRequest.getPassword()));
+                user.setRole(Role.PATIENT);
+
+                User savedUser = userRepository.save(user);
+
+                Patient patient = new Patient();
+                patient.setUser(savedUser);
+                patient.setFirstName(signUpRequest.getFirstName());
+                patient.setLastName(signUpRequest.getLastName());
+                patient.setMiddleName(signUpRequest.getMiddleName());
+
+                patientRepository.save(patient);
+
+                return ResponseEntity.ok(new MessageResponse("Пользователь успешно зарегистрирован"));
         }
-
-        User user = new User();
-        user.setUsername(signUpRequest.getLogin());
-        user.setPassword(encoder.encode(signUpRequest.getPassword()));
-        user.setRole(Role.PATIENT);
-
-        User savedUser = userRepository.save(user);
-
-        Patient patient = new Patient();
-        patient.setUser(savedUser);
-        patient.setFirstName(signUpRequest.getFirstName());
-        patient.setLastName(signUpRequest.getLastName());
-        patient.setMiddleName(signUpRequest.getMiddleName());
-        patient.setAddress(signUpRequest.getAddress());
-
-        patientRepository.save(patient);
-
-        return ResponseEntity.ok(new MessageResponse("Пользователь успешно зарегистрирован"));
-    }
 
 }

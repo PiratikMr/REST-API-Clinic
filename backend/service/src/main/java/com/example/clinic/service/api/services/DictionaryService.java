@@ -11,6 +11,9 @@ import com.example.clinic.service.core.repositories.SpecialtyRepository;
 import com.example.clinic.service.core.repositories.TestRepository;
 import com.example.clinic.service.entities.*;
 import lombok.RequiredArgsConstructor;
+import com.example.clinic.service.api.dto.response.PageResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -24,15 +27,21 @@ public class DictionaryService {
     private final ProcedureRepository procedureRepository;
     private final TestRepository testRepository;
 
-    public List<DictionaryResponse> getAllDictionary(
-            DictionaryType type
-    ) {
-        return (switch (type) {
-            case SPECIALTY -> specialtyRepository.findAllByOrderByNameAsc();
-            case MEDICATION -> medicationRepository.findAllByOrderByNameAsc();
-            case PROCEDURE -> procedureRepository.findAllByOrderByNameAsc();
-            case TEST -> testRepository.findAllByOrderByNameAsc();
-        }).stream().map(entity -> convertToDto(type, entity)).toList();
+    public PageResponse<DictionaryResponse> getAllDictionary(
+            DictionaryType type, String search, Pageable pageable) {
+        Page<?> pageResult = switch (type) {
+            case SPECIALTY -> (search == null || search.isBlank()) ? specialtyRepository.findAll(pageable)
+                    : specialtyRepository.findByNameContainingIgnoreCase(search, pageable);
+            case MEDICATION -> (search == null || search.isBlank()) ? medicationRepository.findAll(pageable)
+                    : medicationRepository.findByNameContainingIgnoreCase(search, pageable);
+            case PROCEDURE -> (search == null || search.isBlank()) ? procedureRepository.findAll(pageable)
+                    : procedureRepository.findByNameContainingIgnoreCase(search, pageable);
+            case TEST -> (search == null || search.isBlank()) ? testRepository.findAll(pageable)
+                    : testRepository.findByNameContainingIgnoreCase(search, pageable);
+        };
+
+        Page<DictionaryResponse> dtoPage = pageResult.map(entity -> convertToDto(type, entity));
+        return new PageResponse<>(dtoPage, search);
     }
 
     public void createDictionaryItem(DictionaryType type, CreateDictionaryRequest request) {
@@ -63,7 +72,6 @@ public class DictionaryService {
             }
         }
     }
-
 
     public void deleteDictionaryItem(DictionaryType type, Long id) {
         switch (type) {
@@ -98,7 +106,6 @@ public class DictionaryService {
         }
     }
 
-
     public void updateDictionaryItem(DictionaryType type, PatchDictionaryRequest request) {
         Long id = request.getId();
         String name = request.getName();
@@ -131,9 +138,8 @@ public class DictionaryService {
         }
     }
 
-
     private <T> DictionaryResponse convertToDto(DictionaryType type, T entity) {
-        return switch(type) {
+        return switch (type) {
             case SPECIALTY -> convertToDto((Specialty) entity);
             case MEDICATION -> convertToDto((Medication) entity);
             case PROCEDURE -> convertToDto((Procedure) entity);
@@ -147,18 +153,21 @@ public class DictionaryService {
         dto.setName(entity.getName());
         return dto;
     }
+
     private DictionaryResponse convertToDto(Medication entity) {
         DictionaryResponse dto = new DictionaryResponse();
         dto.setId(entity.getMedicationId());
         dto.setName(entity.getName());
         return dto;
     }
+
     private DictionaryResponse convertToDto(Procedure entity) {
         DictionaryResponse dto = new DictionaryResponse();
         dto.setId(entity.getProcedureId());
         dto.setName(entity.getName());
         return dto;
     }
+
     private DictionaryResponse convertToDto(Test entity) {
         DictionaryResponse dto = new DictionaryResponse();
         dto.setId(entity.getTestId());

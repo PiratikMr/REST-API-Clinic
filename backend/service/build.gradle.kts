@@ -33,6 +33,8 @@ dependencies {
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8")
     implementation("me.paulschwarz:spring-dotenv:4.0.0")
 
+    implementation("com.bucket4j:bucket4j-core:8.10.1")
+
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
 

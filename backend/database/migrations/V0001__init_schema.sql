@@ -42,7 +42,17 @@ CREATE TABLE patients (
     last_name       TEXT        NOT NULL,
     first_name      TEXT        NOT NULL,
     middle_name     TEXT,
-    address         TEXT        NOT NULL
+    address         TEXT,
+    birth_date      DATE
+);
+
+CREATE TABLE medical_cards (
+    patient_id       BIGINT      PRIMARY KEY REFERENCES patients(patient_id) ON DELETE CASCADE,
+    card_number      TEXT        NOT NULL UNIQUE,
+    blood_type       TEXT,
+    allergies        TEXT,
+    chronic_diseases TEXT,
+    creation_date    DATE        NOT NULL DEFAULT CURRENT_DATE
 );
 
 CREATE TABLE appointments (

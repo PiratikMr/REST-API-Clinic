@@ -22,3 +22,9 @@ spring:
 jwt:
   secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION}
+
+app:
+  cors:
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000}
+  rate-limit:
+    requests-per-minute: ${RATE_LIMIT_RPM:50}

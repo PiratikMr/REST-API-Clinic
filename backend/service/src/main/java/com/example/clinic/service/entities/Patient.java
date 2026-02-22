@@ -26,6 +26,13 @@ public class Patient {
     @Column(name = "middle_name")
     private String middleName;
 
-    @Column(name = "address", nullable = false)
+    @Column(name = "address")
     private String address;
+
+    @Column(name = "birth_date")
+    private java.time.LocalDate birthDate;
+
+    @OneToOne(mappedBy = "patient", cascade = CascadeType.ALL)
+    @PrimaryKeyJoinColumn
+    private MedicalCard medicalCard;
 }

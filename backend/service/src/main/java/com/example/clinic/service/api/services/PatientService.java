@@ -37,9 +37,12 @@ public class PatientService {
             patient.setLastName(request.getLastName());
         }
 
+        if (request.getBirthDate() != null) {
+            patient.setBirthDate(request.getBirthDate());
+        }
+
         patientRepository.save(patient);
     }
-
 
     private Patient getPatientEntity(Long patientId) {
         return patientRepository.findById(patientId)
