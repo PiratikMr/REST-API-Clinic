@@ -42,10 +42,10 @@ export const doctors = {
 }
 
 export const dictionaries = {
-  tests: () => API.get('/dictionaries/tests'),
-  procedures: () => API.get('/dictionaries/procedures'),
-  medications: () => API.get('/dictionaries/medications'),
-  specialties: () => API.get('/dictionaries/specialties'),
+  tests: (params) => API.get('/dictionaries/tests', { params }),
+  procedures: (params) => API.get('/dictionaries/procedures', { params }),
+  medications: (params) => API.get('/dictionaries/medications', { params }),
+  specialties: (params) => API.get('/dictionaries/specialties', { params }),
   create: (path, body) => API.post(`/dictionaries/${path}`, body),
   patch: (path, body) => API.patch(`/dictionaries/${path}`, body),
   delete: (path, id) => API.delete(`/dictionaries/${path}/${id}`)
