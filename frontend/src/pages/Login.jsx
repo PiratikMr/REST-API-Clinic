@@ -18,12 +18,12 @@ export default function Login({ onLogin }){
       const data = res.data
       
       // Бэкенд возвращает { token, id, username, role } в JwtResponse
-      // Но в Login.jsx была логика обработки разных форматов. Упростим под реальный ответ бэка.
+     
       const token = data.token
       const user = { 
         id: data.id, 
         login: data.username, 
-        role: data.role // Уже содержит строку типа "ROLE_ADMIN" или просто "ADMIN"
+        role: data.role 
       }
 
       if (onLogin) onLogin(user, token)

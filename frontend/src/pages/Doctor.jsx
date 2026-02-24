@@ -6,13 +6,17 @@ export default function Doctor({ user }){
   const [loading, setLoading] = useState(false)
   const [activeAppt, setActiveAppt] = useState(null)
   
-  
   const [dicts, setDicts] = useState({ meds:[], tests:[], procs:[] })
 
-  
   const [newMed, setNewMed] = useState({ id: '', details: '' })
   const [newTest, setNewTest] = useState({ id: '', results: '' })
   const [newProc, setNewProc] = useState({ id: '', sessions: '' })
+
+  const [patientStub, setPatientStub] = useState({
+    bloodType: '',
+    chronic: '',
+    allergies: ''
+  })
 
   useEffect(() => {
     load()
@@ -21,26 +25,37 @@ export default function Doctor({ user }){
 
   async function load(){
     setLoading(true)
-    const docId = user.id || user.doctorId
+    const docId = user?.id || user?.doctorId
     try {
       const res = await appointments.getForDoctor(docId, { statuses: "ACTIVE,CLOSED" })
-      setAppts(res.data.content || [])
+      
+      setAppts(res.data.data || res.data.content || [])
     } catch(e) { console.error(e) }
     setLoading(false)
   }
 
   async function loadDictionaries() {
     try {
+      // Запрашиваем справочники
       const [m, t, p] = await Promise.all([
-        dictionaries.medications(),
-        dictionaries.tests(),
-        dictionaries.procedures()
+        dictionaries.medications({ size: 100 }),
+        dictionaries.tests({ size: 100 }),
+        dictionaries.procedures({ size: 100 })
       ])
-      setDicts({ meds: m.data, tests: t.data, procs: p.data })
-    } catch(e) { console.error(e) }
+      
+     
+      console.log("Meds Raw:", m.data) // Для отладки
+
+      setDicts({ 
+        meds: m.data.data || [], 
+        tests: t.data.data || [], 
+        procs: p.data.data || [] 
+      })
+    } catch(e) { 
+      console.error("Ошибка загрузки справочников:", e) 
+    }
   }
 
- 
   const [closeForm, setCloseForm] = useState({
     diagnosis: '', complaints: '',
     medications: [],
@@ -51,10 +66,10 @@ export default function Doctor({ user }){
   const openCloseModal = (appt) => {
     setActiveAppt(appt)
     setCloseForm({ diagnosis: '', complaints: '', medications: [], tests: [], procedures: [] })
-    // Сброс временных полей
     setNewMed({ id: '', details: '' })
     setNewTest({ id: '', results: '' })
     setNewProc({ id: '', sessions: '' })
+    setPatientStub({ bloodType: '', chronic: '', allergies: '' })
   }
 
   const handleCloseSubmit = async (e) => {
@@ -65,29 +80,31 @@ export default function Doctor({ user }){
       await appointments.close(activeAppt.id, closeForm)
       alert('Прием успешно закрыт!')
       setActiveAppt(null)
-      load()
+      load() 
     } catch(e) {
       alert('Ошибка: ' + (e.response?.data?.message || e.message))
     }
   }
 
-  
   const addItem = (field, item) => setCloseForm(prev => ({...prev, [field]: [...prev[field], item]}))
   const removeItem = (field, idx) => setCloseForm(prev => ({...prev, [field]: prev[field].filter((_, i) => i !== idx)}))
 
-  const formatDateTime = (dt) => new Date(dt).toLocaleString('ru-RU', {day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'})
+  const formatDateTime = (dt) => {
+    if(!dt) return '-'
+    return new Date(dt).toLocaleString('ru-RU', {day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'})
+  }
 
   return (
     <div className="panel">
       <div className="admin-header">
-        <h2>👨‍⚕️ Рабочий стол врача</h2>
-        <button className="btn secondary" onClick={load}>↻ Обновить</button>
+        <h2>Рабочий стол врача</h2>
+        <button className="btn secondary" onClick={() => { load(); loadDictionaries(); }}>↻ Обновить</button>
       </div>
 
       {loading && <div className="loading-bar">Загрузка данных...</div>}
 
       <div className="row" style={{ flexDirection:'column', gap: 15 }}>
-        {!loading && appts.length === 0 && <div className="empty-state">Нет активных приемов на сегодня</div>}
+        {!loading && appts.length === 0 && <div className="empty-state">Нет активных приемов</div>}
         
         {appts.map(a => (
           <div key={a.id} className="card" style={{ borderLeft: a.status === 'ACTIVE' ? '4px solid #4338ca' : '4px solid #10b981' }}>
@@ -95,13 +112,13 @@ export default function Doctor({ user }){
               <div>
                  <div style={{display:'flex', gap:12, alignItems:'center', marginBottom:8}}>
                    <span className={`badge-gray`}>{a.status === 'ACTIVE' ? 'Ожидает приема' : 'Завершен'}</span>
-                   <strong style={{fontSize:'1.1rem'}}>🕒 {formatDateTime(a.visitInfo.time)}</strong>
+                   <strong style={{fontSize:'1.1rem'}}>🕒 {formatDateTime(a.visitInfo?.time)}</strong>
                  </div>
                  <div style={{fontSize:'1.2rem', fontWeight:600, marginBottom:5}}>
-                   👤 {a.patient.lastName} {a.patient.firstName} {a.patient.middleName}
+                   👤 {a.patient?.lastName} {a.patient?.firstName} {a.patient?.middleName}
                  </div>
                  <div style={{color:'#666'}}>
-                    Жалобы (предварительно): {a.complaints || '—'}
+                    Жалобы: {a.complaints || '—'}
                  </div>
               </div>
               
@@ -121,7 +138,6 @@ export default function Doctor({ user }){
         ))}
       </div>
 
-      {}
       {activeAppt && (
         <div className="modal-overlay">
           <div className="modal-content large" style={{maxWidth:'900px'}}>
@@ -131,13 +147,47 @@ export default function Doctor({ user }){
             </div>
             
             <div style={{marginBottom:20, paddingBottom:15, borderBottom:'1px solid #eee'}}>
-              <strong>Пациент: </strong> {activeAppt.patient.lastName} {activeAppt.patient.firstName}
+              <strong>Пациент: </strong> {activeAppt.patient?.lastName} {activeAppt.patient?.firstName}
             </div>
 
             <form onSubmit={handleCloseSubmit}>
+              
+              {/* ЗАГЛУШКА МЕДКАРТЫ */}
+              <div style={{background:'#eff6ff', padding:15, borderRadius:8, marginBottom:20, border:'1px solid #dbeafe'}}>
+                <h4 style={{marginTop:0, color:'#1e40af', marginBottom:10}}>📋 Данные медкарты (Заполнение)</h4>
+                <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:15}}>
+                  <div>
+                    <label style={{fontSize:'0.9rem'}}>Группа крови / Резус</label>
+                    <select 
+                      value={patientStub.bloodType}
+                      onChange={e=>setPatientStub({...patientStub, bloodType:e.target.value})}
+                      style={{background:'white'}}
+                    >
+                      <option value="">Не указано</option>
+                      <option value="O_POS">I (O) Rh+</option>
+                      <option value="O_NEG">I (O) Rh-</option>
+                      <option value="A_POS">II (A) Rh+</option>
+                      <option value="A_NEG">II (A) Rh-</option>
+                      <option value="B_POS">III (B) Rh+</option>
+                      <option value="B_NEG">III (B) Rh-</option>
+                      <option value="AB_POS">IV (AB) Rh+</option>
+                      <option value="AB_NEG">IV (AB) Rh-</option>
+                    </select>
+                  </div>
+                  <div>
+                     <label style={{fontSize:'0.9rem'}}>Аллергические реакции</label>
+                     <input value={patientStub.allergies} onChange={e=>setPatientStub({...patientStub, allergies:e.target.value})} style={{background:'white'}} />
+                  </div>
+                  <div style={{gridColumn:'1 / -1'}}>
+                     <label style={{fontSize:'0.9rem'}}>Хронические заболевания</label>
+                     <textarea rows="2" value={patientStub.chronic} onChange={e=>setPatientStub({...patientStub, chronic:e.target.value})} style={{background:'white'}} />
+                  </div>
+                </div>
+              </div>
+
               <div className="form-grid">
                 <div style={{gridColumn: '1 / -1'}}>
-                  <label>Жалобы пациента *</label>
+                  <label>Жалобы пациента (текущие) *</label>
                   <textarea rows="2" value={closeForm.complaints} onChange={e=>setCloseForm({...closeForm, complaints:e.target.value})} required />
                 </div>
                 <div style={{gridColumn: '1 / -1'}}>
@@ -146,12 +196,11 @@ export default function Doctor({ user }){
                 </div>
               </div>
 
-              {/* 1. ЛЕКАРСТВА */}
+              {/* ЛЕКАРСТВА */}
               <div className="section-box" style={{marginTop:20, padding:15, background:'#f8fafc', borderRadius:8, border:'1px solid #e2e8f0'}}>
-                <h4 style={{marginBottom:10, color:'#334155'}}> Лекарства</h4>
-                {/* Список добавленных */}
+                <h4 style={{marginBottom:10, color:'#334155'}}>Лекарства</h4>
                 {closeForm.medications.length > 0 && (
-                  <ul className="dict-list" style={{marginBottom:15, background:'white', borderRadius:6, border:'1px solid #eee'}}>
+                  <ul className="dict-list" style={{marginBottom:15, background:'white'}}>
                     {closeForm.medications.map((m, i) => (
                       <li key={i} style={{padding:'8px 12px'}}>
                         <span style={{fontWeight:500}}>{dicts.meds.find(d=>d.id == m.medicationId)?.name}</span>
@@ -161,29 +210,33 @@ export default function Doctor({ user }){
                     ))}
                   </ul>
                 )}
-                {}
                 <div style={{display:'grid', gridTemplateColumns:'1fr 1fr auto', gap:10}}>
                   <select value={newMed.id} onChange={e=>setNewMed({...newMed, id:e.target.value})}>
                     <option value="">Выберите препарат...</option>
-                    {dicts.meds.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
+                    {/* Используем безопасный map */}
+                    {Array.isArray(dicts.meds) && dicts.meds.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
-                  <input placeholder="Дозировка (напр. 2 раза в день)" value={newMed.details} onChange={e=>setNewMed({...newMed, details:e.target.value})} />
+                  <input placeholder="Дозировка" value={newMed.details} onChange={e=>setNewMed({...newMed, details:e.target.value})} />
                   <button type="button" className="btn secondary small" disabled={!newMed.id} onClick={()=>{
                     addItem('medications', { medicationId: newMed.id, details: newMed.details })
                     setNewMed({ id: '', details: '' })
                   }}>+ Добавить</button>
                 </div>
+                <div style={{marginTop:15, paddingTop:10, borderTop:'1px dashed #cbd5e1'}}>
+                   <label style={{fontSize:'0.85rem', color:'#64748b'}}>📎 Прикрепить рецепт (Заглушка)</label>
+                   <input type="file" style={{display:'block', marginTop:5}} />
+                </div>
               </div>
 
-              {/* 2. АНАЛИЗЫ */}
+              {/* АНАЛИЗЫ */}
               <div className="section-box" style={{marginTop:15, padding:15, background:'#f8fafc', borderRadius:8, border:'1px solid #e2e8f0'}}>
-                <h4 style={{marginBottom:10, color:'#334155'}}> Анализы</h4>
+                <h4 style={{marginBottom:10, color:'#334155'}}>Анализы</h4>
                 {closeForm.tests.length > 0 && (
-                  <ul className="dict-list" style={{marginBottom:15, background:'white', borderRadius:6, border:'1px solid #eee'}}>
+                  <ul className="dict-list" style={{marginBottom:15, background:'white'}}>
                      {closeForm.tests.map((t, i) => (
                       <li key={i} style={{padding:'8px 12px'}}>
                         <span style={{fontWeight:500}}>{dicts.tests.find(d=>d.id == t.testId)?.name}</span>
-                        <span style={{color:'#666', fontSize:'0.9rem', margin:'0 10px'}}>Result: {t.results}</span>
+                        <span style={{color:'#666', fontSize:'0.9rem', margin:'0 10px'}}>Рез: {t.results}</span>
                         <button type="button" className="btn small danger" onClick={()=>removeItem('tests', i)}>✕</button>
                       </li>
                     ))}
@@ -192,9 +245,9 @@ export default function Doctor({ user }){
                 <div style={{display:'grid', gridTemplateColumns:'1fr 1fr auto', gap:10}}>
                   <select value={newTest.id} onChange={e=>setNewTest({...newTest, id:e.target.value})}>
                     <option value="">Выберите анализ...</option>
-                    {dicts.tests.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
+                    {Array.isArray(dicts.tests) && dicts.tests.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
-                  <input placeholder="Результат (если есть)" value={newTest.results} onChange={e=>setNewTest({...newTest, results:e.target.value})} />
+                  <input placeholder="Результат" value={newTest.results} onChange={e=>setNewTest({...newTest, results:e.target.value})} />
                   <button type="button" className="btn secondary small" disabled={!newTest.id} onClick={()=>{
                     addItem('tests', { testId: newTest.id, results: newTest.results || 'Назначено' })
                     setNewTest({ id: '', results: '' })
@@ -202,11 +255,11 @@ export default function Doctor({ user }){
                 </div>
               </div>
 
-              {}
+              {/* ПРОЦЕДУРЫ */}
               <div className="section-box" style={{marginTop:15, padding:15, background:'#f8fafc', borderRadius:8, border:'1px solid #e2e8f0'}}>
-                <h4 style={{marginBottom:10, color:'#334155'}}> Процедуры</h4>
+                <h4 style={{marginBottom:10, color:'#334155'}}>Процедуры</h4>
                 {closeForm.procedures.length > 0 && (
-                   <ul className="dict-list" style={{marginBottom:15, background:'white', borderRadius:6, border:'1px solid #eee'}}>
+                   <ul className="dict-list" style={{marginBottom:15, background:'white'}}>
                     {closeForm.procedures.map((p, i) => (
                       <li key={i} style={{padding:'8px 12px'}}>
                         <span style={{fontWeight:500}}>{dicts.procs.find(d=>d.id == p.procedureId)?.name}</span>
@@ -219,13 +272,20 @@ export default function Doctor({ user }){
                 <div style={{display:'grid', gridTemplateColumns:'1fr 100px auto', gap:10}}>
                   <select value={newProc.id} onChange={e=>setNewProc({...newProc, id:e.target.value})}>
                     <option value="">Выберите процедуру...</option>
-                    {dicts.procs.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
+                    {Array.isArray(dicts.procs) && dicts.procs.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
                   <input type="number" min="1" placeholder="Кол-во" value={newProc.sessions} onChange={e=>setNewProc({...newProc, sessions:e.target.value})} />
                   <button type="button" className="btn secondary small" disabled={!newProc.id || !newProc.sessions} onClick={()=>{
                     addItem('procedures', { procedureId: newProc.id, sessions: parseInt(newProc.sessions) })
                     setNewProc({ id: '', sessions: '' })
                   }}>+ Добавить</button>
+                </div>
+                <div style={{marginTop:20, paddingTop:15, borderTop:'1px dashed #cbd5e1'}}>
+                   <h5 style={{margin:'0 0 10px 0', fontSize:'0.95rem'}}> Снимки (Заглушка)</h5>
+                   <div style={{display:'flex', gap:15}}>
+                      <label>МРТ/КТ: <input type="file" /></label>
+                      <label>Рентген: <input type="file" /></label>
+                   </div>
                 </div>
               </div>
 
